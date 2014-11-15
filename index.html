@@ -2,62 +2,102 @@
 <html>
 <head>
     <title>File Transfer Example</title>
-    <script type="text/javascript" charset="utf-8" src="phonegap-1.2.0.js"></script>
-    <script type="text/javascript" charset="utf-8">
- 
-        // Wait for PhoneGap to load
-        document.addEventListener("deviceready", onDeviceReady, false);
- 
-        // PhoneGap is ready
-        function onDeviceReady() {
- 		// Do cool things here...
-        }
- 
-        function getImage() {
-            // Retrieve image file location from specified source
-            navigator.camera.getPicture(uploadPhoto, function(message) {
-			alert('get picture failed');
-		},{
-			quality: 50, 
-			destinationType: navigator.camera.DestinationType.FILE_URI,
-			sourceType: navigator.camera.PictureSourceType.PHOTOLIBRARY
-		}
-            );
- 
-        }
- 
-        function uploadPhoto(imageURI) {
-            var options = new FileUploadOptions();
-            options.fileKey="file";
-            options.fileName=imageURI.substr(imageURI.lastIndexOf('/')+1);
-            options.mimeType="image/jpeg";
- 
-            var params = new Object();
-            params.value1 = "test";
-            params.value2 = "param";
- 
-            options.params = params;
-            options.chunkedMode = false;
- 
-            var ft = new FileTransfer();
-            ft.upload(imageURI, "http://198.50.129.105/mohsin/finalUpload/finalphp.php", win, fail, options);
-        }
- 
-        function win(r) {
-            console.log("Code = " + r.responseCode);
-            console.log("Response = " + r.response);
-            console.log("Sent = " + r.bytesSent);
-            alert(r.response);
-        }
- 
-        function fail(error) {
-            alert("An error has occurred: Code = " +  error.code);
-        }
- 
- 
-        </script>
+    
+    <script type="text/javascript" charset="utf-8" src="cordova.js"></script>
+<script type="text/javascript" charset="utf-8">
+
+var pictureSource;   
+var destinationType; 
+
+document.addEventListener("deviceready",onDeviceReady,false);
+
+function onDeviceReady() 
+{
+    pictureSource=navigator.camera.PictureSourceType;
+    destinationType=navigator.camera.DestinationType;
+}
+
+
+function onPhotoURISuccess(imageURI) 
+{
+    console.log(imageURI);
+    var largeImage = document.getElementById('largeImage');
+    largeImage.style.display = 'block';
+    largeImage.src = imageURI;
+}
+
+function onPhotoDataSuccess(imageURI) 
+{ 
+    var imgProfile = document.getElementById('imgProfile');
+    imgProfile.src = imageURI;
+    if(sessionStorage.isprofileimage==1)
+    {
+        getLocation();
+    }
+    movePic(imageURI);
+}
+
+function onFail(message) 
+{
+    alert('Failed because: ' + message);
+}
+
+function movePic(file)
+{ 
+    window.resolveLocalFileSystemURI(file, resolveOnSuccess, resOnError); 
+} 
+
+function resolveOnSuccess(entry)
+{ 
+    var d = new Date();
+    var n = d.getTime();
+    var newFileName = n + ".jpg";
+    var myFolderApp = "MyAppFolder";
+    window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, function(fileSys) 
+    {      
+        fileSys.root.getDirectory( myFolderApp,
+                {create:true, exclusive: false},
+                function(directory) 
+                {
+                    entry.moveTo(directory, newFileName,  successMove, resOnError);
+                },
+        resOnError);
+    },
+    resOnError);
+}
+
+function successMove(entry) 
+{
+    sessionStorage.setItem('imagepath', entry.fullPath);
+}
+
+function resOnError(error) 
+{
+    alert(error.code);
+}
+
+function capturePhotoEdit() 
+{
+    navigator.camera.getPicture(onPhotoDataSuccess, onFail, { quality: 20, allowEdit: true,
+    destinationType: destinationType.DATA_URL });
+}
+
+function getPhoto(source) 
+{
+    navigator.camera.getPicture(onPhotoURISuccess, onFail, { quality: 50, 
+    destinationType: destinationType.FILE_URI,
+    sourceType: source });
+}
+
+function onFail(message) 
+{
+    alert('Failed because: ' + message);
+}
+
+</script>
 </head>
 <body>
-    <button onclick="getImage();">Upload a Photo</button>
+    <button onclick="capturePhoto();">Capture Photo</button>
+<button onclick="getPhoto(pictureSource.PHOTOLIBRARY);">From Gallery!!</button>
 </body>
 </html>
